@@ -9,17 +9,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MYspazzatura">
   <meta name="description" content="Calendario 2026 della raccolta differenziata per Lecce, Zona F.">
-  <meta name="application-name" content="MYspazzatura">
-  <meta name="mobile-web-app-capable" content="yes">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
   <title>MYspazzatura</title>
   <style>
-:root{
+    /* Display font scelto per avvicinare la landing al master grafico giallo.
+       Aggiungi Anton-Regular.woff2 nella stessa cartella di index.html. */
+    @font-face{
+      font-family:"AntonLocal";
+      src:url("Anton-Regular.woff2") format("woff2"),local("Anton");
+      font-style:normal;
+      font-weight:400;
+      font-display:swap;
+    }
+
+    :root{
       --ink:#101010;
       --cream:#F5F1E8;
       --cream-2:#EEE9DF;
@@ -35,7 +37,7 @@
       --sheet-peek:calc(112px + env(safe-area-inset-bottom));
       --sheet-open-top:clamp(calc(108px + env(safe-area-inset-top)),18dvh,calc(138px + env(safe-area-inset-top)));
       --font-ui:"Avenir Next",Avenir,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
-      --font-display:"Anton","Arial Narrow",Impact,"Avenir Next Condensed",Arial,sans-serif;
+      --font-display:"AntonLocal",Anton,"Arial Narrow",Impact,"Avenir Next Condensed",Arial,sans-serif;
     }
 
     *,*::before,*::after{box-sizing:border-box}
@@ -129,7 +131,7 @@
       z-index:2;
     }
     .tomorrow-weekday{
-      margin:0 0 8px;
+      margin:0 0 14px;
       font-family:var(--font-display);
       font-size:clamp(18px,4.85vw,22px);
       line-height:.95;
@@ -151,7 +153,7 @@
     }
     .tomorrow-month{
       display:block;
-      margin-top:8px;
+      margin-top:14px;
       font-family:var(--font-display);
       font-size:clamp(25px,6.9vw,31px);
       line-height:.95;
