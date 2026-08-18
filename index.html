@@ -1,0 +1,823 @@
+<!doctype html>
+<!-- MYspazzatura — UI 2026 / single-file prototype. Dati e logica raccolta preservati dall'HTML approvato. -->
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E98262">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MYspazzatura">
+  <meta name="description" content="Calendario 2026 della raccolta differenziata per Lecce, Zona F.">
+  <meta name="application-name" content="MYspazzatura">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <title>MYspazzatura</title>
+  <style>
+:root{
+      --ink:#101010;
+      --cream:#F5F1E8;
+      --cream-2:#EEE9DF;
+      --muted:#6D6962;
+      --hairline:rgba(16,16,16,.16);
+      --secco:#DDB5BA;
+      --organico:#E98262;
+      --vm:#8FB79A;
+      --plastica:#E8C95A;
+      --carta:#9BCBD0;
+      --sheet-radius:34px;
+      --side:clamp(22px,6.4vw,30px);
+      --sheet-peek:calc(112px + env(safe-area-inset-bottom));
+      --sheet-open-top:clamp(calc(108px + env(safe-area-inset-top)),18dvh,calc(138px + env(safe-area-inset-top)));
+      --font-ui:"Avenir Next",Avenir,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+      --font-display:"Anton","Arial Narrow",Impact,"Avenir Next Condensed",Arial,sans-serif;
+    }
+
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--cream);color:var(--ink)}
+    html{font-family:var(--font-ui);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+    body{min-height:100dvh;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+    button{font:inherit;color:inherit}
+    button,input,select,textarea{touch-action:manipulation}
+    button{-webkit-tap-highlight-color:transparent}
+
+    .app{
+      position:relative;
+      width:min(100%,430px);
+      height:100dvh;
+      margin:0 auto;
+      overflow:hidden;
+      isolation:isolate;
+      background:var(--cream);
+    }
+
+    /* Campiture cromatiche: nessun gradiente, solo superfici piatte. */
+    .color-layer{
+      position:absolute;
+      inset:0;
+      z-index:-3;
+      transition:opacity .34s cubic-bezier(.2,.75,.2,1);
+      background:var(--cream);
+    }
+    .color-layer .segment{position:absolute;inset:0;background:var(--layer-a,var(--cream))}
+    .color-layer.dual .segment-a{right:50%}
+    .color-layer.dual .segment-b{display:block;left:50%;background:var(--layer-b,var(--cream))}
+    .color-layer:not(.dual) .segment-b{display:none}
+
+    .landing-content{
+      position:absolute;
+      inset:0 0 var(--sheet-peek) 0;
+      transition:opacity .2s ease,transform .32s cubic-bezier(.2,.75,.2,1);
+    }
+    .app.sheet-open .landing-content{opacity:0;transform:translateY(-12px);pointer-events:none}
+
+    .landing-copy{
+      position:absolute;
+      inset:0;
+      padding:0 var(--side);
+      color:var(--landing-ink-a,var(--ink));
+    }
+    .landing-copy.copy-b{display:none;color:var(--landing-ink-b,var(--ink))}
+    .landing-content.dual .copy-a{clip-path:inset(0 50% 0 0)}
+    .landing-content.dual .copy-b{display:block;clip-path:inset(0 0 0 50%)}
+
+    /* LANDING — replica proporzionale della variante grafica gialla approvata, con Anton come display master. */
+    .app-brand{
+      position:absolute;
+      top:calc(env(safe-area-inset-top) + clamp(24px,3.3dvh,32px));
+      left:var(--side);
+      margin:0;
+      font-family:var(--font-ui);
+      font-size:clamp(19px,5.2vw,23px);
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-.055em;
+      white-space:nowrap;
+      z-index:2;
+    }
+    .app-brand .my{font-weight:900}
+    .app-brand .trash{font-weight:800}
+
+    .landing-inner{
+      position:relative;
+      width:100%;
+      height:100%;
+      max-width:430px;
+      margin:0 auto;
+      text-align:center;
+    }
+    .landing-stack{
+      position:relative;
+      width:100%;
+      height:100%;
+      min-height:0;
+    }
+    .landing-main{
+      position:absolute;
+      top:clamp(118px,16.9dvh,150px);
+      left:50%;
+      width:calc(100% - 12px);
+      transform:translateX(-50%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      z-index:2;
+    }
+    .tomorrow-weekday{
+      margin:0 0 8px;
+      font-family:var(--font-display);
+      font-size:clamp(18px,4.85vw,22px);
+      line-height:.95;
+      font-weight:400;
+      letter-spacing:-.025em;
+      text-transform:uppercase;
+      opacity:.74;
+    }
+    .tomorrow-number{
+      display:block;
+      margin:0;
+      font-family:var(--font-display);
+      font-size:clamp(108px,29.4vw,128px);
+      line-height:.74;
+      font-weight:400;
+      letter-spacing:-.045em;
+      font-variant-numeric:tabular-nums;
+      opacity:1;
+    }
+    .tomorrow-month{
+      display:block;
+      margin-top:8px;
+      font-family:var(--font-display);
+      font-size:clamp(25px,6.9vw,31px);
+      line-height:.95;
+      font-weight:400;
+      letter-spacing:-.02em;
+      text-transform:uppercase;
+      opacity:.74;
+    }
+    .pickup-label{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:34px;
+      margin-top:27px;
+      padding:6px 16px 5px;
+      border-radius:999px;
+      background:var(--cream);
+      color:var(--ink);
+      font-family:var(--font-ui);
+      font-size:clamp(13px,3.55vw,15px);
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-.02em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .hero-materials{
+      width:100%;
+      margin-top:13px;
+      display:grid;
+      justify-items:center;
+      gap:2px;
+      overflow:visible;
+    }
+    .hero-material{
+      width:111%;
+      max-width:none;
+      font-family:var(--font-display);
+      font-size:clamp(80px,22vw,96px);
+      line-height:.82;
+      font-weight:400;
+      letter-spacing:-.025em;
+      text-align:center;
+      text-transform:uppercase;
+      white-space:nowrap;
+      transform:scaleX(.90);
+      transform-origin:center;
+    }
+    .hero-material.long{
+      width:112%;
+      font-size:clamp(64px,17.8vw,78px);
+      line-height:.84;
+      white-space:normal;
+      transform:scaleX(.92);
+    }
+    .hero-materials.multi{gap:7px;margin-top:15px}
+    .hero-materials.multi .hero-material{
+      width:108%;
+      font-size:clamp(48px,13.2vw,57px);
+      line-height:.84;
+      white-space:normal;
+      transform:scaleX(.92);
+    }
+    .hero-materials.multi .hero-material.long{font-size:clamp(42px,11.8vw,51px)}
+    .hero-material .line{display:block}
+    .no-pickup .pickup-label{margin-top:29px}
+    .no-pickup .hero-material{font-size:clamp(48px,13.5vw,59px);line-height:.86;white-space:normal}
+
+    /* Illustrazione: grande, bassa e parzialmente intercettata dal foglio Calendario,
+       come nel mockup giallo approvato. */
+    .collection-illustration{
+      position:absolute;
+      left:50%;
+      bottom:clamp(-21px,-2.4dvh,-12px);
+      transform:translateX(-50%);
+      width:min(82%,315px);
+      height:clamp(128px,18.7dvh,166px);
+      margin:0;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      color:currentColor;
+      opacity:1;
+      pointer-events:none;
+      z-index:1;
+    }
+    .collection-illustration.multi{
+      width:92%;
+      max-width:360px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px;
+    }
+    .collection-illustration .illustration-item{height:100%;display:grid;place-items:end center}
+    .collection-illustration svg{display:block;width:auto;height:100%;max-width:100%;overflow:visible}
+    .collection-illustration .paper{fill:var(--cream)}
+    .collection-illustration .ink{fill:var(--ink)}
+    .collection-illustration .accent{fill:var(--organico)}
+    .collection-illustration .stroke{stroke:var(--ink);fill:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
+    .collection-illustration .soft-stroke{stroke:var(--ink);fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+
+    /* A calendario aperto la fascia cromatica continua a raccontare DOMANI; il dettaglio selezionato vive sotto al calendario. */
+    .open-summary-wrap{
+      position:absolute;
+      inset:0 0 auto 0;
+      height:var(--sheet-open-top);
+      z-index:1;
+      pointer-events:none;
+      opacity:0;
+      transform:translateY(-8px);
+      transition:opacity .18s ease .08s,transform .3s cubic-bezier(.2,.75,.2,1);
+    }
+    .app.sheet-open .open-summary-wrap{opacity:1;transform:none}
+    .open-summary{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:18px;
+      padding:env(safe-area-inset-top) var(--side) 0;
+      text-align:center;
+      color:var(--today-ink-a,var(--ink));
+    }
+    .open-summary.summary-b{display:none;color:var(--today-ink-b,var(--ink))}
+    .open-summary-wrap.dual .summary-a{clip-path:inset(0 50% 0 0)}
+    .open-summary-wrap.dual .summary-b{display:flex;clip-path:inset(0 0 0 50%)}
+    .open-today-number{
+      font-family:var(--font-display);
+      font-size:clamp(64px,17vw,78px);
+      line-height:.78;
+      font-weight:400;
+      letter-spacing:-.035em;
+      font-variant-numeric:tabular-nums;
+    }
+    .open-today-material{
+      max-width:250px;
+      padding:0;
+      font-family:var(--font-display);
+      font-size:clamp(20px,5.3vw,25px);
+      line-height:.95;
+      font-weight:400;
+      letter-spacing:-.02em;
+      text-transform:uppercase;
+    }
+
+    /* Bottom sheet Calendario */
+    .calendar-sheet{
+      position:absolute;
+      z-index:5;
+      top:var(--sheet-open-top);
+      left:0;
+      right:0;
+      height:calc(100dvh - var(--sheet-open-top));
+      min-height:0;
+      border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;
+      background:var(--cream);
+      border-top:1px solid rgba(16,16,16,.08);
+      transform:translateY(calc(100% - var(--sheet-peek)));
+      transition:transform .46s cubic-bezier(.22,.8,.22,1);
+      overflow:hidden;
+      will-change:transform;
+    }
+    .app.sheet-open .calendar-sheet{transform:translateY(0)}
+
+    .sheet-toggle{
+      position:relative;
+      width:100%;
+      height:88px;
+      padding:14px var(--side) 8px;
+      border:0;
+      background:transparent;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      text-align:left;
+      cursor:pointer;
+    }
+    .sheet-title{
+      padding-top:0;
+      font-family:var(--font-ui);
+      font-size:clamp(30px,7.7vw,36px);
+      line-height:1;
+      font-weight:600;
+      letter-spacing:-.055em;
+    }
+    .toggle-icon{
+      width:44px;
+      height:44px;
+      flex:0 0 44px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+    }
+    .toggle-icon svg{width:26px;height:26px;transition:transform .32s cubic-bezier(.2,.75,.2,1)}
+    .app.sheet-open .toggle-icon svg{transform:rotate(180deg)}
+
+    .calendar-content{
+      height:calc(100% - 88px);
+      padding:0 var(--side) calc(12px + env(safe-area-inset-bottom));
+      display:flex;
+      flex-direction:column;
+      opacity:0;
+      visibility:hidden;
+      transform:translateY(10px);
+      transition:opacity .18s ease,transform .28s ease,visibility 0s linear .28s;
+    }
+    .app.sheet-open .calendar-content{
+      opacity:1;
+      visibility:visible;
+      transform:none;
+      transition:opacity .24s ease .12s,transform .34s ease .08s,visibility 0s;
+    }
+
+    .month-nav{
+      flex:0 0 52px;
+      display:grid;
+      grid-template-columns:44px 1fr 44px;
+      align-items:center;
+      gap:7px;
+    }
+    .month-label{
+      margin:0;
+      text-align:center;
+      font-size:clamp(15px,4vw,18px);
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-.02em;
+      text-transform:uppercase;
+    }
+    .month-button{
+      width:44px;
+      height:44px;
+      padding:0;
+      border:0;
+      border-radius:50%;
+      background:transparent;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+    }
+    .month-button:disabled{opacity:.22;cursor:default}
+    .month-button svg{width:20px;height:20px}
+
+    .weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+    .weekdays{flex:0 0 24px;align-items:center}
+    .weekdays span{
+      text-align:center;
+      color:var(--muted);
+      font-size:clamp(9px,2.5vw,11px);
+      line-height:1;
+      font-weight:700;
+      letter-spacing:.015em;
+      text-transform:uppercase;
+    }
+
+    .calendar-grid{
+      height:clamp(248px,33.5dvh,292px);
+      flex:0 0 auto;
+      grid-auto-rows:minmax(44px,1fr);
+      align-content:center;
+    }
+    .day-cell{
+      position:relative;
+      min-width:44px;
+      min-height:44px;
+      padding:0;
+      border:0;
+      background:transparent;
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      isolation:isolate;
+    }
+    .day-cell.outside{pointer-events:none;color:rgba(16,16,16,.26)}
+    .day-visual{
+      position:relative;
+      width:37px;
+      height:37px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      font-size:clamp(13px,3.55vw,15px);
+      line-height:1;
+      font-weight:700;
+      font-variant-numeric:tabular-nums;
+      overflow:hidden;
+    }
+    .day-cell:not(.outside):active .day-visual{transform:scale(.93)}
+    .day-cell.selected .day-visual{background:var(--selected-color,var(--cream-2));color:var(--selected-ink,var(--ink))}
+    .day-cell.selected.empty .day-visual{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink)}
+    .day-visual .split{position:absolute;top:0;bottom:0;width:50%;z-index:-1}
+    .day-visual .split.left{left:0;background:var(--selected-a)}
+    .day-visual .split.right{right:0;background:var(--selected-b)}
+    .day-cell.selected.dual .day-visual{background:transparent;color:var(--selected-dual-ink,var(--ink))}
+    .day-cell.selected.dual .day-visual > span:last-child{position:relative;z-index:2;-webkit-text-stroke:.55px rgba(245,241,232,.9);paint-order:stroke fill}
+
+    .day-detail{
+      min-height:58px;
+      margin-top:auto;
+      border-top:1px solid var(--hairline);
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+    }
+    .detail-line{
+      width:100%;
+      display:flex;
+      align-items:baseline;
+      gap:10px;
+      white-space:nowrap;
+      min-width:0;
+      font-size:clamp(15px,4.05vw,18px);
+      line-height:1;
+      letter-spacing:-.025em;
+      text-transform:uppercase;
+    }
+    .detail-date{font-weight:800;flex:0 0 auto}
+    .detail-separator{color:var(--muted);flex:0 0 auto}
+    .detail-material{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-weight:800;
+      color:var(--detail-color,var(--ink));
+    }
+
+    .visually-hidden{
+      position:absolute!important;
+      width:1px!important;height:1px!important;
+      padding:0!important;margin:-1px!important;
+      overflow:hidden!important;clip:rect(0,0,0,0)!important;
+      white-space:nowrap!important;border:0!important;
+    }
+
+    @media(max-width:360px){
+      :root{--side:20px;--sheet-radius:30px}
+      .landing-main{top:clamp(108px,16.2dvh,136px);width:calc(100% - 10px)}
+      .tomorrow-number{font-size:102px}
+      .hero-material{font-size:76px}
+      .hero-material.long{font-size:61px}
+      .collection-illustration{height:124px;width:82%}
+      .sheet-title{font-size:30px}
+    }
+
+    /* Solo sui viewport eccezionalmente bassi è consentito lo scroll interno del calendario. */
+    @media(max-height:620px){
+      :root{--sheet-open-top:calc(92px + env(safe-area-inset-top));--sheet-peek:calc(98px + env(safe-area-inset-bottom))}
+      .calendar-content{overflow-y:auto;overscroll-behavior:contain}
+      .sheet-toggle{height:80px}
+      .calendar-content{height:calc(100% - 80px)}
+      .landing-main{top:92px}
+      .tomorrow-number{font-size:86px}
+      .tomorrow-month{margin-top:7px}
+      .tomorrow-weekday{margin-bottom:7px}
+      .pickup-label{margin-top:18px}
+      .hero-materials{margin-top:9px}
+      .hero-material{font-size:66px}
+      .collection-illustration{height:92px;bottom:-14px}
+    }
+
+    @media(prefers-reduced-motion:reduce){
+      *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <div class="color-layer tomorrow-layer" id="tomorrowLayer" aria-hidden="true"><div class="segment segment-a"></div><div class="segment segment-b"></div></div>
+
+    <section class="landing-content" id="landingContent" aria-live="polite">
+      <div class="landing-copy copy-a"><p class="app-brand"><span class="my">MY</span><span class="trash">spazzatura</span></p><div class="landing-inner" id="landingInnerA"></div></div>
+      <div class="landing-copy copy-b"><p class="app-brand"><span class="my">MY</span><span class="trash">spazzatura</span></p><div class="landing-inner" id="landingInnerB"></div></div>
+    </section>
+
+    <div class="open-summary-wrap" id="openSummary" aria-live="polite">
+      <div class="open-summary summary-a"><span class="open-today-number" id="openTomorrowNumberA">—</span><span class="open-today-material" id="openTomorrowMaterialA">—</span></div>
+      <div class="open-summary summary-b"><span class="open-today-number" id="openTomorrowNumberB">—</span><span class="open-today-material" id="openTomorrowMaterialB">—</span></div>
+    </div>
+
+    <section class="calendar-sheet" id="calendarSheet" aria-label="Calendario raccolta differenziata">
+      <button class="sheet-toggle" id="sheetToggle" type="button" aria-expanded="false" aria-controls="calendarContent" aria-label="Apri calendario">
+        <span class="sheet-title">Calendario</span>
+        <span class="toggle-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M5 15.5 12 8.5l7 7" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </button>
+
+      <div class="calendar-content" id="calendarContent">
+        <div class="month-nav">
+          <button class="month-button" id="prevMonth" type="button" aria-label="Mese precedente">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14.5 5-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <h2 class="month-label" id="monthHeading">—</h2>
+          <button class="month-button" id="nextMonth" type="button" aria-label="Mese successivo">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9.5 5 7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+
+        <div class="weekdays" aria-hidden="true"><span>LUN</span><span>MAR</span><span>MER</span><span>GIO</span><span>VEN</span><span>SAB</span><span>DOM</span></div>
+        <div class="calendar-grid" id="calendarGrid" role="grid" aria-label="Calendario mensile"></div>
+
+        <div class="day-detail" id="dayDetail" aria-live="polite">
+          <div class="detail-line"><span class="detail-date" id="detailDate">—</span><span class="detail-separator">—</span><span class="detail-material" id="detailMaterial">—</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const YEAR = 2026;
+    const COLLECTIONS = {"2026-01-01":["PLASTICA"],"2026-01-02":["ORGANICO","CARTA"],"2026-01-03":["SECCO","V&M"],"2026-01-04":[],"2026-01-05":["ORGANICO"],"2026-01-06":["SECCO"],"2026-01-07":["ORGANICO"],"2026-01-08":["PLASTICA"],"2026-01-09":["ORGANICO","CARTA"],"2026-01-10":["SECCO","V&M"],"2026-01-11":[],"2026-01-12":["ORGANICO"],"2026-01-13":["SECCO"],"2026-01-14":["ORGANICO"],"2026-01-15":["PLASTICA"],"2026-01-16":["ORGANICO","CARTA"],"2026-01-17":["SECCO","V&M"],"2026-01-18":[],"2026-01-19":["ORGANICO"],"2026-01-20":["SECCO"],"2026-01-21":["ORGANICO"],"2026-01-22":["PLASTICA"],"2026-01-23":["ORGANICO","CARTA"],"2026-01-24":["SECCO","V&M"],"2026-01-25":[],"2026-01-26":["ORGANICO"],"2026-01-27":["SECCO"],"2026-01-28":["ORGANICO"],"2026-01-29":["PLASTICA"],"2026-01-30":["ORGANICO","CARTA"],"2026-01-31":["SECCO","V&M"],"2026-02-01":[],"2026-02-02":["ORGANICO"],"2026-02-03":["SECCO"],"2026-02-04":["ORGANICO"],"2026-02-05":["PLASTICA"],"2026-02-06":["ORGANICO","CARTA"],"2026-02-07":["SECCO","V&M"],"2026-02-08":[],"2026-02-09":["ORGANICO"],"2026-02-10":["SECCO"],"2026-02-11":["ORGANICO"],"2026-02-12":["PLASTICA"],"2026-02-13":["ORGANICO","CARTA"],"2026-02-14":["SECCO","V&M"],"2026-02-15":[],"2026-02-16":["ORGANICO"],"2026-02-17":["SECCO"],"2026-02-18":["ORGANICO"],"2026-02-19":["PLASTICA"],"2026-02-20":["ORGANICO","CARTA"],"2026-02-21":["SECCO","V&M"],"2026-02-22":[],"2026-02-23":["ORGANICO"],"2026-02-24":["SECCO"],"2026-02-25":["ORGANICO"],"2026-02-26":["PLASTICA"],"2026-02-27":["ORGANICO","CARTA"],"2026-02-28":["SECCO","V&M"],"2026-03-01":[],"2026-03-02":["ORGANICO"],"2026-03-03":["SECCO"],"2026-03-04":["ORGANICO"],"2026-03-05":["PLASTICA"],"2026-03-06":["ORGANICO","CARTA"],"2026-03-07":["SECCO","V&M"],"2026-03-08":[],"2026-03-09":["ORGANICO"],"2026-03-10":["SECCO"],"2026-03-11":["ORGANICO"],"2026-03-12":["PLASTICA"],"2026-03-13":["ORGANICO","CARTA"],"2026-03-14":["SECCO","V&M"],"2026-03-15":[],"2026-03-16":["ORGANICO"],"2026-03-17":["SECCO"],"2026-03-18":["ORGANICO"],"2026-03-19":["PLASTICA"],"2026-03-20":["ORGANICO","CARTA"],"2026-03-21":["SECCO","V&M"],"2026-03-22":[],"2026-03-23":["ORGANICO"],"2026-03-24":["SECCO"],"2026-03-25":["ORGANICO"],"2026-03-26":["PLASTICA"],"2026-03-27":["ORGANICO","CARTA"],"2026-03-28":["SECCO","V&M"],"2026-03-29":[],"2026-03-30":["ORGANICO"],"2026-03-31":["SECCO"],"2026-04-01":["ORGANICO"],"2026-04-02":["PLASTICA"],"2026-04-03":["ORGANICO","CARTA"],"2026-04-04":["SECCO","V&M"],"2026-04-05":[],"2026-04-06":["ORGANICO"],"2026-04-07":["SECCO"],"2026-04-08":["ORGANICO"],"2026-04-09":["PLASTICA"],"2026-04-10":["ORGANICO","CARTA"],"2026-04-11":["SECCO","V&M"],"2026-04-12":[],"2026-04-13":["ORGANICO"],"2026-04-14":["SECCO"],"2026-04-15":["ORGANICO"],"2026-04-16":["PLASTICA"],"2026-04-17":["ORGANICO","CARTA"],"2026-04-18":["SECCO","V&M"],"2026-04-19":[],"2026-04-20":["ORGANICO"],"2026-04-21":["SECCO"],"2026-04-22":["ORGANICO"],"2026-04-23":["PLASTICA"],"2026-04-24":["ORGANICO","CARTA"],"2026-04-25":["SECCO","V&M"],"2026-04-26":[],"2026-04-27":["ORGANICO"],"2026-04-28":["SECCO"],"2026-04-29":["ORGANICO"],"2026-04-30":["PLASTICA"],"2026-05-01":["ORGANICO","CARTA"],"2026-05-02":["SECCO","V&M"],"2026-05-03":[],"2026-05-04":["ORGANICO"],"2026-05-05":["SECCO"],"2026-05-06":["ORGANICO"],"2026-05-07":["PLASTICA"],"2026-05-08":["ORGANICO","CARTA"],"2026-05-09":["SECCO","V&M"],"2026-05-10":[],"2026-05-11":["ORGANICO"],"2026-05-12":["SECCO"],"2026-05-13":["ORGANICO"],"2026-05-14":["PLASTICA"],"2026-05-15":["ORGANICO","CARTA"],"2026-05-16":["SECCO","V&M"],"2026-05-17":[],"2026-05-18":["ORGANICO"],"2026-05-19":["SECCO"],"2026-05-20":["ORGANICO"],"2026-05-21":["PLASTICA"],"2026-05-22":["ORGANICO","CARTA"],"2026-05-23":["SECCO","V&M"],"2026-05-24":[],"2026-05-25":["ORGANICO"],"2026-05-26":["SECCO"],"2026-05-27":["ORGANICO"],"2026-05-28":["PLASTICA"],"2026-05-29":["ORGANICO","CARTA"],"2026-05-30":["SECCO","V&M"],"2026-05-31":[],"2026-06-01":["ORGANICO"],"2026-06-02":["SECCO"],"2026-06-03":["ORGANICO"],"2026-06-04":["PLASTICA"],"2026-06-05":["ORGANICO","CARTA"],"2026-06-06":["SECCO","V&M"],"2026-06-07":[],"2026-06-08":["ORGANICO"],"2026-06-09":["SECCO"],"2026-06-10":["ORGANICO"],"2026-06-11":["PLASTICA"],"2026-06-12":["ORGANICO","CARTA"],"2026-06-13":["SECCO","V&M"],"2026-06-14":[],"2026-06-15":["ORGANICO"],"2026-06-16":["SECCO"],"2026-06-17":["ORGANICO"],"2026-06-18":["PLASTICA"],"2026-06-19":["ORGANICO","CARTA"],"2026-06-20":["SECCO","V&M"],"2026-06-21":[],"2026-06-22":["ORGANICO"],"2026-06-23":["SECCO"],"2026-06-24":["ORGANICO"],"2026-06-25":["PLASTICA"],"2026-06-26":["ORGANICO","CARTA"],"2026-06-27":["SECCO","V&M"],"2026-06-28":[],"2026-06-29":["ORGANICO"],"2026-06-30":["SECCO"],"2026-07-01":["ORGANICO"],"2026-07-02":["PLASTICA"],"2026-07-03":["ORGANICO","CARTA"],"2026-07-04":["SECCO","V&M"],"2026-07-05":[],"2026-07-06":["ORGANICO"],"2026-07-07":["SECCO"],"2026-07-08":["ORGANICO"],"2026-07-09":["PLASTICA"],"2026-07-10":["ORGANICO","CARTA"],"2026-07-11":["SECCO","V&M"],"2026-07-12":[],"2026-07-13":["ORGANICO"],"2026-07-14":["SECCO"],"2026-07-15":["ORGANICO"],"2026-07-16":["PLASTICA"],"2026-07-17":["ORGANICO","CARTA"],"2026-07-18":["SECCO","V&M"],"2026-07-19":[],"2026-07-20":["ORGANICO"],"2026-07-21":["SECCO"],"2026-07-22":["ORGANICO"],"2026-07-23":["PLASTICA"],"2026-07-24":["ORGANICO","CARTA"],"2026-07-25":["SECCO","V&M"],"2026-07-26":[],"2026-07-27":["ORGANICO"],"2026-07-28":["SECCO"],"2026-07-29":["ORGANICO"],"2026-07-30":["PLASTICA"],"2026-07-31":["ORGANICO","CARTA"],"2026-08-01":["SECCO","V&M"],"2026-08-02":[],"2026-08-03":["ORGANICO"],"2026-08-04":["SECCO"],"2026-08-05":["ORGANICO"],"2026-08-06":["PLASTICA"],"2026-08-07":["ORGANICO","CARTA"],"2026-08-08":["SECCO","V&M"],"2026-08-09":[],"2026-08-10":["ORGANICO"],"2026-08-11":["SECCO"],"2026-08-12":["ORGANICO"],"2026-08-13":["PLASTICA"],"2026-08-14":["ORGANICO","CARTA"],"2026-08-15":["SECCO","V&M"],"2026-08-16":[],"2026-08-17":["ORGANICO"],"2026-08-18":["SECCO"],"2026-08-19":["ORGANICO"],"2026-08-20":["PLASTICA"],"2026-08-21":["ORGANICO","CARTA"],"2026-08-22":["SECCO","V&M"],"2026-08-23":[],"2026-08-24":["ORGANICO"],"2026-08-25":["SECCO"],"2026-08-26":["ORGANICO"],"2026-08-27":["PLASTICA"],"2026-08-28":["ORGANICO","CARTA"],"2026-08-29":["SECCO","V&M"],"2026-08-30":[],"2026-08-31":["ORGANICO"],"2026-09-01":["SECCO"],"2026-09-02":["ORGANICO"],"2026-09-03":["PLASTICA"],"2026-09-04":["ORGANICO","CARTA"],"2026-09-05":["SECCO","V&M"],"2026-09-06":[],"2026-09-07":["ORGANICO"],"2026-09-08":["SECCO"],"2026-09-09":["ORGANICO"],"2026-09-10":["PLASTICA"],"2026-09-11":["ORGANICO","CARTA"],"2026-09-12":["SECCO","V&M"],"2026-09-13":[],"2026-09-14":["ORGANICO"],"2026-09-15":["SECCO"],"2026-09-16":["ORGANICO"],"2026-09-17":["PLASTICA"],"2026-09-18":["ORGANICO","CARTA"],"2026-09-19":["SECCO","V&M"],"2026-09-20":[],"2026-09-21":["ORGANICO"],"2026-09-22":["SECCO"],"2026-09-23":["ORGANICO"],"2026-09-24":["PLASTICA"],"2026-09-25":["ORGANICO","CARTA"],"2026-09-26":["SECCO","V&M"],"2026-09-27":[],"2026-09-28":["ORGANICO"],"2026-09-29":["SECCO"],"2026-09-30":["ORGANICO"],"2026-10-01":["PLASTICA"],"2026-10-02":["ORGANICO","CARTA"],"2026-10-03":["SECCO","V&M"],"2026-10-04":[],"2026-10-05":["ORGANICO"],"2026-10-06":["SECCO"],"2026-10-07":["ORGANICO"],"2026-10-08":["PLASTICA"],"2026-10-09":["ORGANICO","CARTA"],"2026-10-10":["SECCO","V&M"],"2026-10-11":[],"2026-10-12":["ORGANICO"],"2026-10-13":["SECCO"],"2026-10-14":["ORGANICO"],"2026-10-15":["PLASTICA"],"2026-10-16":["ORGANICO","CARTA"],"2026-10-17":["SECCO","V&M"],"2026-10-18":[],"2026-10-19":["ORGANICO"],"2026-10-20":["SECCO"],"2026-10-21":["ORGANICO"],"2026-10-22":["PLASTICA"],"2026-10-23":["ORGANICO","CARTA"],"2026-10-24":["SECCO","V&M"],"2026-10-25":[],"2026-10-26":["ORGANICO"],"2026-10-27":["SECCO"],"2026-10-28":["ORGANICO"],"2026-10-29":["PLASTICA"],"2026-10-30":["ORGANICO","CARTA"],"2026-10-31":["SECCO","V&M"],"2026-11-01":[],"2026-11-02":["ORGANICO"],"2026-11-03":["SECCO"],"2026-11-04":["ORGANICO"],"2026-11-05":["PLASTICA"],"2026-11-06":["ORGANICO","CARTA"],"2026-11-07":["SECCO","V&M"],"2026-11-08":[],"2026-11-09":["ORGANICO"],"2026-11-10":["SECCO"],"2026-11-11":["ORGANICO"],"2026-11-12":["PLASTICA"],"2026-11-13":["ORGANICO","CARTA"],"2026-11-14":["SECCO","V&M"],"2026-11-15":[],"2026-11-16":["ORGANICO"],"2026-11-17":["SECCO"],"2026-11-18":["ORGANICO"],"2026-11-19":["PLASTICA"],"2026-11-20":["ORGANICO","CARTA"],"2026-11-21":["SECCO","V&M"],"2026-11-22":[],"2026-11-23":["ORGANICO"],"2026-11-24":["SECCO"],"2026-11-25":["ORGANICO"],"2026-11-26":["PLASTICA"],"2026-11-27":["ORGANICO","CARTA"],"2026-11-28":["SECCO","V&M"],"2026-11-29":[],"2026-11-30":["ORGANICO"],"2026-12-01":["SECCO"],"2026-12-02":["ORGANICO"],"2026-12-03":["PLASTICA"],"2026-12-04":["ORGANICO","CARTA"],"2026-12-05":["SECCO","V&M"],"2026-12-06":[],"2026-12-07":["ORGANICO"],"2026-12-08":["SECCO"],"2026-12-09":["ORGANICO"],"2026-12-10":["PLASTICA"],"2026-12-11":["ORGANICO","CARTA"],"2026-12-12":["SECCO","V&M"],"2026-12-13":[],"2026-12-14":["ORGANICO"],"2026-12-15":["SECCO"],"2026-12-16":["ORGANICO"],"2026-12-17":["PLASTICA"],"2026-12-18":["ORGANICO","CARTA"],"2026-12-19":["SECCO","V&M"],"2026-12-20":[],"2026-12-21":["ORGANICO"],"2026-12-22":["SECCO"],"2026-12-23":["ORGANICO"],"2026-12-24":["PLASTICA"],"2026-12-25":["ORGANICO","CARTA"],"2026-12-26":["SECCO","V&M"],"2026-12-27":[],"2026-12-28":["ORGANICO"],"2026-12-29":["SECCO"],"2026-12-30":["ORGANICO"],"2026-12-31":["PLASTICA"]};
+
+    const MATERIALS = {
+      "SECCO": { label:"SECCO", hero:["SECCO"], color:"#DDB5BA", ink:"#101010" },
+      "ORGANICO": { label:"ORGANICO", hero:["ORGANICO"], color:"#E98262", ink:"#101010" },
+      "V&M": { label:"VETRO E METALLI", hero:["VETRO E","METALLI"], color:"#8FB79A", ink:"#101010" },
+      "PLASTICA": { label:"PLASTICA", hero:["PLASTICA"], color:"#E8C95A", ink:"#101010" },
+      "CARTA": { label:"CARTA", hero:["CARTA"], color:"#9BCBD0", ink:"#101010" }
+    };
+
+    const weekdays = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+    const months = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+    const monthsShort = ["GEN","FEB","MAR","APR","MAG","GIU","LUG","AGO","SET","OTT","NOV","DIC"];
+
+    const app = document.getElementById("app");
+    const tomorrowLayer = document.getElementById("tomorrowLayer");
+    const landingContent = document.getElementById("landingContent");
+    const landingInnerA = document.getElementById("landingInnerA");
+    const landingInnerB = document.getElementById("landingInnerB");
+    const openSummary = document.getElementById("openSummary");
+    const calendarGrid = document.getElementById("calendarGrid");
+    const monthHeading = document.getElementById("monthHeading");
+    const detailDate = document.getElementById("detailDate");
+    const detailMaterial = document.getElementById("detailMaterial");
+    const sheetToggle = document.getElementById("sheetToggle");
+    const calendarSheet = document.getElementById("calendarSheet");
+
+    function romeDateParts(input = new Date()){
+      const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"})
+        .formatToParts(input).reduce((a,x)=>{if(x.type!=="literal")a[x.type]=x.value;return a;},{});
+      return {year:Number(p.year),month:Number(p.month)-1,day:Number(p.day)};
+    }
+    function dateFromParts(p){return new Date(p.year,p.month,p.day,12,0,0)}
+    function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+    function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+    function sameDate(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+    function escapeHtml(s){return String(s).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]))}
+    function formatWeekday(d){return weekdays[d.getDay()].toLocaleUpperCase("it-IT")}
+    function formatAria(d){return `${weekdays[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`}
+
+    let nowParts = romeDateParts();
+    let today = dateFromParts(nowParts);
+    let tomorrow = addDays(today,1);
+    let displayMonth = today.getFullYear()===YEAR ? today.getMonth() : 0;
+    let selectedDate = today.getFullYear()===YEAR ? today : new Date(YEAR,0,1,12);
+    let sheetOpen = false;
+
+    function getItems(d){return d.getFullYear()===YEAR ? (COLLECTIONS[isoDate(d)] || []) : []}
+    function collectionStyle(items){
+      if(!items || !items.length) return {a:"#DED9CF",b:"#DED9CF",inkA:"#101010",inkB:"#101010",dual:false};
+      const a=MATERIALS[items[0]];
+      const b=items[1] ? MATERIALS[items[1]] : a;
+      return {a:a.color,b:b.color,inkA:a.ink,inkB:b.ink,dual:items.length>1};
+    }
+    function applyLayer(layer,style){
+      layer.style.setProperty("--layer-a",style.a);
+      layer.style.setProperty("--layer-b",style.b);
+      layer.classList.toggle("dual",style.dual);
+    }
+
+    function heroMaterialMarkup(items){
+      if(!items.length) return `<div class="hero-material long"><span class="line">NESSUNA</span><span class="line">RACCOLTA</span></div>`;
+      return items.map(name=>{
+        const m=MATERIALS[name];
+        const longClass=m.label.length>9?" long":"";
+        return `<div class="hero-material${longClass}">${m.hero.map(line=>`<span class="line">${escapeHtml(line)}</span>`).join("")}</div>`;
+      }).join("");
+    }
+    function illustrationSvg(name){
+      const svgs={
+        "PLASTICA":`<svg viewBox="0 0 180 120" aria-hidden="true">
+          <circle class="accent" cx="18" cy="83" r="9"/>
+          <path class="paper" d="M57 12h31v10H57z"/>
+          <path class="paper" d="M54 24h37l4 15c8 7 13 17 13 29v43H37V68c0-12 5-22 13-29z"/>
+          <path d="M37 69h71v42H37z" fill="none"/>
+          <circle class="paper" cx="62" cy="78" r="9"/><circle class="paper" cx="83" cy="78" r="9"/>
+          <circle class="ink" cx="62" cy="78" r="5"/><circle class="ink" cx="83" cy="78" r="5"/>
+          <path class="soft-stroke" d="M59 94c8 9 19 9 27 0"/>
+          <path class="paper" d="m142 54 8 17 18-5-9 16 14 11-19-2-5 18-7-17-18 6 9-17-14-10 19 1z"/>
+          <path class="ink" d="M111 83h38l-8 28h-22z"/>
+          <path class="paper" d="M115 79h30l3 6h-36z"/>
+        </svg>`,
+        "ORGANICO":`<svg viewBox="0 0 150 100" aria-hidden="true"><path class="paper" d="M52 35c-22 0-34 14-31 34 3 20 19 27 32 17 13 10 29 3 32-17 3-20-9-34-33-34z"/><path class="ink" d="M55 28c6-12 17-16 29-12-6 11-16 16-29 12z"/><path class="stroke" d="M52 36c1-9 6-15 14-19"/><circle class="ink" cx="43" cy="61" r="4.7"/><circle class="ink" cx="60" cy="61" r="4.7"/><path class="soft-stroke" d="M43 75c7 6 13 6 20 0"/><circle class="ink" cx="110" cy="33" r="8"/><path class="paper" d="m119 57 7 11 13-4-6 12 10 8-13-1-4 12-5-12-13 4 6-11-10-8 13 1z"/></svg>`,
+        "CARTA":`<svg viewBox="0 0 150 100" aria-hidden="true"><path class="paper" d="M35 13h62l18 18v56H35z"/><path class="ink" d="M97 13v20h18z"/><path class="soft-stroke" d="M49 48h48M49 60h38M49 72h43"/><circle class="ink" cx="20" cy="73" r="7"/><path class="ink" d="m122 52 5 9 10-3-5 9 8 6-10-1-3 10-4-10-10 3 5-9-8-6 10 1z"/></svg>`,
+        "V&M":`<svg viewBox="0 0 150 100" aria-hidden="true"><path class="paper" d="M25 25h28v11H25z"/><path class="paper" d="M20 38h38l7 15v38H13V53z"/><path class="ink" d="M76 29h39l5 12v45H71V41z"/><path class="paper" d="M80 40h31v5H80z"/><path class="paper" d="M80 54h31v4H80z"/><circle class="ink" cx="31" cy="65" r="4"/><circle class="ink" cx="47" cy="65" r="4"/><path class="soft-stroke" d="M31 78c6 5 11 5 17 0"/><circle class="paper" cx="133" cy="28" r="7"/></svg>`,
+        "SECCO":`<svg viewBox="0 0 150 100" aria-hidden="true"><path class="paper" d="M38 30h52l-8 58H46z"/><path class="ink" d="M43 22h42l6 10H37z"/><path class="soft-stroke" d="M57 21c2-8 13-8 15 0"/><circle class="ink" cx="56" cy="55" r="4.5"/><circle class="ink" cx="73" cy="55" r="4.5"/><path class="soft-stroke" d="M56 70c7 5 12 5 19 0"/><path class="ink" d="m113 48 6 10 11-3-5 10 9 7-12-1-3 11-5-11-11 4 6-10-9-7 12 1z"/></svg>`
+      };
+      return svgs[name] || `<svg viewBox="0 0 150 100" aria-hidden="true"><circle class="paper" cx="75" cy="50" r="28"/><path class="stroke" d="M62 50h26"/></svg>`;
+    }
+    function illustrationMarkup(items){
+      if(!items.length) return `<div class="collection-illustration"><div class="illustration-item"><svg viewBox="0 0 150 100" aria-hidden="true"><circle class="paper" cx="75" cy="50" r="28"/><path class="stroke" d="M62 50h26"/></svg></div></div>`;
+      return `<div class="collection-illustration ${items.length>1?"multi":""}">${items.map(name=>`<div class="illustration-item">${illustrationSvg(name)}</div>`).join("")}</div>`;
+    }
+    function landingMarkup(d,items){
+      const noPickup=!items.length;
+      return `<div class="landing-stack ${noPickup?"no-pickup":""}">
+        <div class="landing-main">
+          <p class="tomorrow-weekday">${escapeHtml(formatWeekday(d))}</p>
+          <span class="tomorrow-number">${d.getDate()}</span>
+          <span class="tomorrow-month">${escapeHtml(months[d.getMonth()])}</span>
+          <span class="pickup-label">${noPickup?"DOMANI":"RITIRANO"}</span>
+          <div class="hero-materials ${items.length>1?"multi":""}">${heroMaterialMarkup(items)}</div>
+        </div>
+        ${illustrationMarkup(items)}
+      </div>`;
+    }
+    function summaryMaterial(items){
+      if(!items.length) return "NESSUNA RACCOLTA";
+      return items.map(x=>MATERIALS[x].label).join(" + ");
+    }
+
+    function renderDailyUI(){
+      nowParts=romeDateParts();
+      today=dateFromParts(nowParts);
+      tomorrow=addDays(today,1);
+      const tomorrowItems=getItems(tomorrow);
+      const tmrStyle=collectionStyle(tomorrowItems);
+
+      applyLayer(tomorrowLayer,tmrStyle);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content",tmrStyle.a);
+
+      landingContent.classList.toggle("dual",tmrStyle.dual);
+      landingContent.style.setProperty("--landing-ink-a",tmrStyle.inkA);
+      landingContent.style.setProperty("--landing-ink-b",tmrStyle.inkB);
+      const markup=tomorrow.getFullYear()===YEAR
+        ? landingMarkup(tomorrow,tomorrowItems)
+        : `<div class="landing-stack no-pickup"><div class="landing-main"><p class="tomorrow-weekday">CALENDARIO</p><span class="tomorrow-number">2026</span><span class="pickup-label">PROGRAMMAZIONE</span><div class="hero-materials"><div class="hero-material long"><span class="line">NON</span><span class="line">DISPONIBILE</span></div></div></div>${illustrationMarkup([])}</div>`;
+      landingInnerA.innerHTML=markup;
+      landingInnerB.innerHTML=markup;
+
+      openSummary.classList.toggle("dual",tmrStyle.dual);
+      openSummary.style.setProperty("--today-ink-a",tmrStyle.inkA);
+      openSummary.style.setProperty("--today-ink-b",tmrStyle.inkB);
+      ["A","B"].forEach(s=>{
+        document.getElementById(`openTomorrowNumber${s}`).textContent=tomorrow.getFullYear()===YEAR ? tomorrow.getDate() : "2027";
+        document.getElementById(`openTomorrowMaterial${s}`).textContent=tomorrow.getFullYear()===YEAR ? summaryMaterial(tomorrowItems) : "NON DISPONIBILE";
+      });
+    }
+
+    function selectedColorProps(items){
+      if(!items.length) return {color:"transparent",ink:"#101010",dual:false,a:"",b:"",dualInk:"#101010"};
+      if(items.length===1){const m=MATERIALS[items[0]];return {color:m.color,ink:m.ink,dual:false,a:"",b:"",dualInk:m.ink};}
+      const a=MATERIALS[items[0]],b=MATERIALS[items[1]];
+      // Il numero resta nero salvo doppia raccolta con V&M, dove una sottile base crema garantisce contrasto sul lato scuro.
+      return {color:"transparent",ink:"#101010",dual:true,a:a.color,b:b.color,dualInk:"#101010"};
+    }
+
+    function renderCalendar(){
+      monthHeading.textContent=`${months[displayMonth].toUpperCase()} ${YEAR}`;
+      document.getElementById("prevMonth").disabled=displayMonth===0;
+      document.getElementById("nextMonth").disabled=displayMonth===11;
+
+      const first=new Date(YEAR,displayMonth,1,12);
+      const offset=(first.getDay()+6)%7;
+      const daysInMonth=new Date(YEAR,displayMonth+1,0,12).getDate();
+      const cells=[];
+
+      for(let i=0;i<offset;i++) cells.push(`<span class="day-cell outside" aria-hidden="true"></span>`);
+      for(let day=1;day<=daysInMonth;day++){
+        const d=new Date(YEAR,displayMonth,day,12);
+        const items=getItems(d);
+        const selected=sameDate(d,selectedDate);
+        const style=selectedColorProps(items);
+        const classes=["day-cell"];
+        if(selected) classes.push("selected");
+        if(selected && style.dual) classes.push("dual");
+        if(selected && !items.length) classes.push("empty");
+        const split=selected&&style.dual?`<span class="split left"></span><span class="split right"></span>`:"";
+        const css=selected?`style="--selected-color:${style.color};--selected-ink:${style.ink};--selected-a:${style.a};--selected-b:${style.b};--selected-dual-ink:${style.dualInk}"`:"";
+        const label=items.length?items.map(x=>MATERIALS[x].label).join(", "):"nessuna raccolta";
+        cells.push(`<button class="${classes.join(" ")}" type="button" data-date="${isoDate(d)}" role="gridcell" aria-label="${escapeHtml(formatAria(d))}: ${escapeHtml(label)}" ${css}><span class="day-visual">${split}<span>${day}</span></span></button>`);
+      }
+      while(cells.length%7!==0) cells.push(`<span class="day-cell outside" aria-hidden="true"></span>`);
+      calendarGrid.innerHTML=cells.join("");
+      renderDetail(selectedDate);
+    }
+
+    function renderDetail(d){
+      const items=getItems(d);
+      detailDate.textContent=`${d.getDate()} ${monthsShort[d.getMonth()]}`;
+      if(!items.length){
+        detailMaterial.textContent="NESSUNA RACCOLTA";
+        detailMaterial.style.setProperty("--detail-color","#6D6962");
+      }else{
+        detailMaterial.style.setProperty("--detail-color","#101010");
+        detailMaterial.innerHTML=items.map((x,i)=>`${i?'<span style="color:#6D6962"> + </span>':''}<span style="color:${MATERIALS[x].color}">${escapeHtml(MATERIALS[x].label)}</span>`).join("");
+      }
+    }
+
+    function setSheet(open){
+      if(open===sheetOpen) return;
+      sheetOpen=open;
+      app.classList.toggle("sheet-open",sheetOpen);
+      sheetToggle.setAttribute("aria-expanded",String(sheetOpen));
+      sheetToggle.setAttribute("aria-label",sheetOpen?"Chiudi calendario":"Apri calendario");
+      if(sheetOpen){
+        if(today.getFullYear()===YEAR){displayMonth=today.getMonth();selectedDate=today;}
+        renderCalendar();
+      }
+      renderDailyUI();
+    }
+
+    function changeMonth(delta){
+      const next=Math.max(0,Math.min(11,displayMonth+delta));
+      if(next===displayMonth) return;
+      displayMonth=next;
+      selectedDate=new Date(YEAR,displayMonth,1,12);
+      renderCalendar();
+    }
+
+    sheetToggle.addEventListener("click",()=>setSheet(!sheetOpen));
+    document.getElementById("prevMonth").addEventListener("click",()=>changeMonth(-1));
+    document.getElementById("nextMonth").addEventListener("click",()=>changeMonth(1));
+
+    calendarGrid.addEventListener("click",event=>{
+      const btn=event.target.closest("[data-date]");
+      if(!btn) return;
+      const [y,m,d]=btn.dataset.date.split("-").map(Number);
+      selectedDate=new Date(y,m-1,d,12);
+      renderCalendar();
+    });
+
+    // Gesto verticale sulla testata: swipe up apre, swipe down chiude; la chevron resta il principale affordance visivo.
+    let sheetTouchY=null;
+    sheetToggle.addEventListener("touchstart",e=>{sheetTouchY=e.changedTouches[0].clientY},{passive:true});
+    sheetToggle.addEventListener("touchend",e=>{
+      if(sheetTouchY===null) return;
+      const dy=e.changedTouches[0].clientY-sheetTouchY;
+      sheetTouchY=null;
+      if(Math.abs(dy)>34) setSheet(dy<0);
+    },{passive:true});
+
+    // Swipe orizzontale sul calendario per cambiare mese, senza introdurre scroll pagina.
+    let calendarTouchX=null;
+    calendarGrid.addEventListener("touchstart",e=>{calendarTouchX=e.changedTouches[0].clientX},{passive:true});
+    calendarGrid.addEventListener("touchend",e=>{
+      if(calendarTouchX===null) return;
+      const dx=e.changedTouches[0].clientX-calendarTouchX;
+      calendarTouchX=null;
+      if(Math.abs(dx)>56) changeMonth(dx<0?1:-1);
+    },{passive:true});
+
+    renderDailyUI();
+    renderCalendar();
+
+    setInterval(()=>{
+      const fresh=dateFromParts(romeDateParts());
+      if(!sameDate(fresh,today)){
+        today=fresh;
+        tomorrow=addDays(today,1);
+        if(sheetOpen && today.getFullYear()===YEAR){displayMonth=today.getMonth();selectedDate=today;renderCalendar();}
+        renderDailyUI();
+      }
+    },60000);
+  </script>
+</body>
+</html>
